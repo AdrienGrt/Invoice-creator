@@ -34,12 +34,12 @@ async function generateTemplate1PDF(data: InvoiceData): Promise<void> {
   const margin = 15
   let y = margin
 
-  // Ajouter des formes décoratives
-  doc.setFillColor(128, 0, 128, 0.1) // Violet pâle
+  // Formes décoratives pour correspondre au design du Template 1
+  doc.setFillColor(150, 0, 255, 0.1) // Violet clair transparent - plus proche du gradient dans la preview
   doc.roundedRect(doc.internal.pageSize.width - 60, 0, 60, 60, 0, 60, "F") // Coin supérieur droit
 
-  doc.setFillColor(219, 39, 119, 0.1) // Rose pâle
-  doc.roundedRect(0, doc.internal.pageSize.height - 30, 40, 30, 20, 0, "F") // Coin inférieur gauche
+  doc.setFillColor(219, 39, 119, 0.1) // Rose pâle transparent
+  doc.roundedRect(0, doc.internal.pageSize.height - 40, 40, 40, 40, 0, "F") // Coin inférieur gauche - ajusté pour mieux correspondre
 
   // Ajouter le logo s'il existe
   if (data.logo) {
@@ -50,20 +50,22 @@ async function generateTemplate1PDF(data: InvoiceData): Promise<void> {
       y += 25
     } catch (e) {
       console.error("Erreur lors de l'ajout du logo", e)
+      y += 5 // Ajoutons un peu d'espace même si le logo échoue
     }
   }
 
-  // Titre du document avec dégradé (simulé)
+  // Titre du document avec effet gradient (simulation)
   const documentTitle = data.documentType === "invoice" ? "FACTURE" : "DEVIS"
   doc.setFontSize(24)
   doc.setFont("helvetica", "bold")
-  doc.setTextColor(128, 0, 128) // Couleur violet
+  // Un dégradé simple du violet au rose n'est pas possible en jsPDF, nous utilisons donc du violet vif
+  doc.setTextColor(128, 0, 200) // Violet plus vif pour évoquer le dégradé
   doc.text(documentTitle, margin, y)
 
-  // Numéro et dates
+  // Numéro et dates avec style amélioré
   doc.setFontSize(10)
   doc.setFont("helvetica", "normal")
-  doc.setTextColor(100, 100, 100) // Gris
+  doc.setTextColor(100, 100, 100) // Gris pour correspondre au texte-gray-600
   doc.text(`N° ${data.documentNumber || `${documentTitle}-0001`}`, margin, y + 7)
   doc.text(`Date d'émission: ${formatDate(data.issueDate)}`, margin, y + 12)
 
@@ -71,10 +73,10 @@ async function generateTemplate1PDF(data: InvoiceData): Promise<void> {
     doc.text(`Date d'échéance: ${formatDate(data.dueDate)}`, margin, y + 17)
   }
 
-  // Informations de l'émetteur
+  // Informations de l'émetteur - style ajusté
   doc.setFontSize(10)
   doc.setFont("helvetica", "bold")
-  doc.setTextColor(128, 0, 128) // Violet
+  doc.setTextColor(128, 0, 128) // Violet - font-bold text-purple-700
   const rightColumnX = 140
   doc.text(data.sender.name, rightColumnX, y)
 
@@ -105,21 +107,26 @@ async function generateTemplate1PDF(data: InvoiceData): Promise<void> {
   // Avancer le curseur Y
   y += 35
 
-  // Informations du client
-  doc.setFillColor(245, 240, 255) // Violet très pâle
-  doc.roundedRect(margin, y, doc.internal.pageSize.width - margin * 2, 30, 5, 5, "F")
-  doc.setDrawColor(128, 0, 128) // Violet
+  // Informations du client avec design amélioré
+  // Background avec bordure violet à gauche comme dans template
+  doc.setFillColor(250, 245, 255) // Plus proche du bg-white avec ombre
+  doc.roundedRect(margin, y, doc.internal.pageSize.width - margin * 2, 35, 3, 3, "F")
+  
+  // Bordure à gauche violette (border-l-4 border-purple-500)
+  doc.setDrawColor(128, 0, 200) // Purple-500
+  doc.setLineWidth(2)
+  doc.line(margin, y, margin, y + 35)
   doc.setLineWidth(0.5)
-  doc.line(margin, y, margin + 4, y) // Petit accent de couleur
-
-  doc.setTextColor(128, 0, 128) // Violet
+  
+  doc.setTextColor(128, 0, 200) // Violet - text-purple-700
   doc.setFont("helvetica", "bold")
   doc.text("Client", margin + 7, y + 7)
 
-  doc.setTextColor(0, 0, 0) // Noir
-  doc.setFont("helvetica", "normal")
+  doc.setTextColor(0, 0, 0) // Noir - text normal
+  doc.setFont("helvetica", "bold")
   doc.text(data.client.name, margin + 7, y + 14)
-
+  
+  doc.setFont("helvetica", "normal")
   if (data.client.reference) {
     doc.text(`Réf: ${data.client.reference}`, margin + 7, y + 19)
   }
@@ -142,9 +149,9 @@ async function generateTemplate1PDF(data: InvoiceData): Promise<void> {
   }
 
   // Avancer le curseur Y
-  y += 40
+  y += 45
 
-  // Tableau des prestations avec couleurs alternées
+  // Tableau des prestations - style amélioré pour correspondre au design
   const tableColumn = ["Description", "Qté", "Prix unitaire", "TVA", "Total HT"]
   const tableRows = data.items.map((item) => [
     item.description,
@@ -154,12 +161,19 @@ async function generateTemplate1PDF(data: InvoiceData): Promise<void> {
     formatCurrency(item.totalHT),
   ])
 
+  // Configuration du tableau avec en-tête en dégradé
   autoTable(doc, {
     head: [tableColumn],
     body: tableRows,
     startY: y,
     margin: { left: margin, right: margin },
-    styles: { overflow: "linebreak" },
+    styles: { overflow: "linebreak", fontSize: 9 },
+    headStyles: {
+      fillColor: [128, 0, 200], // bg-gradient-to-r from-purple-600 to-pink-500
+      textColor: [255, 255, 255], // text-white
+      fontStyle: 'bold',
+      halign: 'left',
+    },
     columnStyles: {
       0: { cellWidth: "auto" },
       1: { cellWidth: 15, halign: "right" },
@@ -167,12 +181,26 @@ async function generateTemplate1PDF(data: InvoiceData): Promise<void> {
       3: { cellWidth: 20, halign: "right" },
       4: { cellWidth: 30, halign: "right" },
     },
- 
-  
-    // Couleurs alternées pour les lignes
-    bodyStyles: { fillColor: [255, 255, 255] },
-    alternateRowStyles: { fillColor: [245, 240, 255] },
+    bodyStyles: { fillColor: [255, 255, 255] }, // bg-white
+    alternateRowStyles: { fillColor: [250, 245, 255] }, // bg-purple-50
+    didDrawPage: () => {
+      // Ce hook reste vide ou peut servir plus tard
+    }
   })
+
+  doc.setDrawColor(220, 220, 220)
+doc.setLineWidth(0.5)
+
+const tableStartY = y
+const tableEndY = (doc as any).lastAutoTable.finalY
+
+doc.rect(
+  margin - 1,
+  tableStartY - 1,
+  doc.internal.pageSize.width - margin * 2 + 2,
+  tableEndY - tableStartY + 2,
+  'S'
+)
   
   
   // Récupérer la position Y après le tableau
@@ -188,61 +216,80 @@ async function generateTemplate1PDF(data: InvoiceData): Promise<void> {
   )
   const totalTTC = totalHT + totalTVA
 
-  // Afficher les totaux avec style
+  // Afficher les totaux avec style amélioré
   const totalsX = doc.internal.pageSize.width - margin - 60
+  const totalsWidth = 65
+  const totalsHeight = !data.isExemptFromTax ? 35 : 25
+  
+  // Box des totaux avec style bg-white rounded-lg
   doc.setFillColor(255, 255, 255) // Blanc
-  doc.roundedRect(totalsX - 5, y - 5, 70, !data.isExemptFromTax ? 35 : 25, 5, 5, "F")
-  doc.setDrawColor(245, 240, 255) // Violet très pâle
+  doc.roundedRect(totalsX - 5, y - 5, totalsWidth, totalsHeight, 3, 3, "F")
+  doc.setDrawColor(240, 240, 240) // Gris très léger pour l'ombre
   doc.setLineWidth(0.5)
-  doc.rect(totalsX - 5, y - 5, 70, !data.isExemptFromTax ? 35 : 25)
+  doc.rect(totalsX - 5, y - 5, totalsWidth, totalsHeight, "S") // Utiliser rect standard pour éviter l'erreur
 
-  doc.setTextColor(100, 100, 100) // Gris
+  // Styles de texte pour les totaux
+  doc.setTextColor(100, 100, 100) // Gris - text-gray-600
+  doc.setFontSize(9)
+  doc.setFont("helvetica", "normal")
   doc.text("Total HT:", totalsX, y)
-  doc.text(formatCurrency(totalHT), doc.internal.pageSize.width - margin - 10, y, { align: "right" })
+  doc.text(formatCurrency(totalHT), totalsX + totalsWidth - 5, y, { align: "right" })
 
   if (!data.isExemptFromTax) {
     doc.text("Total TVA:", totalsX, y + 7)
-    doc.text(formatCurrency(totalTVA), doc.internal.pageSize.width - margin - 10, y + 7, { align: "right" })
+    doc.text(formatCurrency(totalTVA), totalsX + totalsWidth - 5, y + 7, { align: "right" })
     y += 7
   }
 
-  doc.setTextColor(128, 0, 128) // Violet
+  // Séparateur pour le total TTC (border-t border-purple-200)
+  doc.setDrawColor(230, 210, 255) // Couleur border-purple-200
+  doc.line(totalsX - 3, y + 2, totalsX + totalsWidth - 7, y + 2)
+
+  // Total TTC avec style amélioré
+  doc.setTextColor(128, 0, 128) // Violet - font-bold text-purple-700
   doc.setFont("helvetica", "bold")
   doc.text("Total TTC:", totalsX, y + 7)
-  doc.text(formatCurrency(totalTTC), doc.internal.pageSize.width - margin - 10, y + 7, { align: "right" })
+  doc.text(formatCurrency(totalTTC), totalsX + totalsWidth - 5, y + 7, { align: "right" })
 
+  // Mention TVA non applicable si nécessaire
   if (data.isExemptFromTax) {
     doc.setFontSize(8)
     doc.setFont("helvetica", "normal")
-    doc.setTextColor(100, 100, 100) // Gris
+    doc.setTextColor(100, 100, 100) // Gris - text-xs text-gray-600
     doc.text("TVA non applicable - Article 293B du CGI", totalsX, y + 15)
   }
 
   // Avancer le curseur Y
   y += 25
 
-  // Conditions de paiement
+  // Conditions de paiement avec style amélioré
   if (data.paymentTerms) {
-    doc.setFillColor(245, 240, 255) // Violet très pâle
-    doc.roundedRect(margin, y - 5, doc.internal.pageSize.width - margin * 2, 20, 5, 5, "F")
+    // Style bg-white p-4 rounded-lg shadow-sm
+    doc.setFillColor(255, 255, 255) // Blanc
+    doc.roundedRect(margin, y - 5, doc.internal.pageSize.width - margin * 2, 25, 3, 3, "F")
+    doc.setDrawColor(240, 240, 240) // Gris très léger pour l'ombre
+    doc.rect(margin, y - 5, doc.internal.pageSize.width - margin * 2, 25, "S") // Utiliser rect standard
 
     doc.setFontSize(10)
     doc.setFont("helvetica", "bold")
-    doc.setTextColor(128, 0, 128) // Violet
+    doc.setTextColor(128, 0, 128) // Violet - font-bold text-purple-700
     doc.text("Conditions de paiement", margin + 5, y + 3)
 
     doc.setFont("helvetica", "normal")
     doc.setTextColor(0, 0, 0) // Noir
     doc.text(data.paymentTerms, margin + 5, y + 10)
 
-    y += 25
+    y += 30
   }
 
-  // Notes et mentions légales
+  // Notes avec style amélioré - border-t border-purple-100 pt-4 mt-4
   if (data.notes) {
+    doc.setDrawColor(240, 230, 255) // Couleur border-purple-100
+    doc.line(margin, y - 5, doc.internal.pageSize.width - margin, y - 5)
+    
     doc.setFontSize(8)
-    doc.setTextColor(100, 100, 100) // Gris
-    doc.text(data.notes, margin, doc.internal.pageSize.height - 15)
+    doc.setTextColor(100, 100, 100) // Gris - text-xs text-gray-600
+    doc.text(data.notes, margin, y + 3)
   }
 
   // Télécharger le PDF
